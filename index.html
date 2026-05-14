@@ -501,8 +501,9 @@ function drawYoto(features) {
       const yotoId = p["youto_id"];
       const name   = (yotoId != null ? YOTO_CODE[String(yotoId)] : null)
                   || p["use_area_ja"] || "用途地域外";
-      const bcr    = p["u_building_coverage_ratio_ja"] || "—";
-      const far    = p["u_floor_area_ratio_ja"]        || "—";
+      const isShiroF = !YOTO[name];
+      const bcr    = p["u_building_coverage_ratio_ja"] || (isShiroF ? "60%" : "—");
+      const far    = p["u_floor_area_ratio_ja"]        || (isShiroF ? "200%" : "—");
       layer.bindPopup(
         `<b>${name}</b><br>建ぺい率: ${bcr}<br>容積率: ${far}`,
         { maxWidth: 200 }
@@ -523,9 +524,10 @@ function showResult(geoTitle, lat, lon, yotoF, boukaF) {
                 || yp["use_area_ja"]
                 || "用途地域外（白地）";
 
-  // 建ぺい率・容積率を直接取得
-  const bcr = yp["u_building_coverage_ratio_ja"] || null;
-  const far = yp["u_floor_area_ratio_ja"]        || null;
+  // 建ぺい率・容積率を直接取得（用途地域外の場合はデフォルト値を表示）
+  const isShiro = !YOTO[yotoName]; // 用途地域外（白地）判定
+  const bcr = yp["u_building_coverage_ratio_ja"] || (isShiro ? "60%" : null);
+  const far = yp["u_floor_area_ratio_ja"]        || (isShiro ? "200%" : null);
 
   const info = YOTO[yotoName];
   const bg   = info ? info.color : COLOR_SHIRO;
