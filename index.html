@@ -323,7 +323,7 @@ async function fetchAllLayers(lat, lon) {
     for (let dy = -2; dy <= 2; dy++) {
       yotoReqs.push( fetchTile("XKT002", x+dx, y+dy, z));
       boukaReqs.push(fetchTile("XKT014", x+dx, y+dy, z));
-      chikuReqs.push(fetchTile("XKT011", x+dx, y+dy, z));
+      chikuReqs.push(fetchTile("XKT023", x+dx, y+dy, z));
     }
   }
 
@@ -406,8 +406,6 @@ function drawYoto(features) {
 
 function drawChiku(features) {
   chikuLayer.clearLayers();
-  console.log("★地区計画features数:", features.length);
-  if (features.length > 0) console.log("★地区計画1件目:", JSON.stringify(features[0].properties));
   if (!features.length) return;
   L.geoJSON({type:"FeatureCollection", features}, {
     style: {fillColor:"transparent", fillOpacity:0, color:"#cc3300", weight:2.5, opacity:0.9, dashArray:"6 4"},
