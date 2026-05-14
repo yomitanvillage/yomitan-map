@@ -609,6 +609,9 @@ async function doSearch() {
     // 5. 地点の情報を特定して結果表示
     const yotoF  = findFeatureAt(yotoFeatures,  geo.lat, geo.lon);
     const boukaF = findFeatureAt(boukaFeatures, geo.lat, geo.lon);
+    // ★デバッグ: 実際のフィールド名をコンソールに出力
+    console.log("★YOTO properties:", JSON.stringify(yotoF?.properties));
+    console.log("★BOUKA properties:", JSON.stringify(boukaF?.properties));
     showResult(geo.title, geo.lat, geo.lon, yotoF, boukaF);
 
   } catch (e) {
