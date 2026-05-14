@@ -421,7 +421,9 @@ function drawChiku(features) {
 function showResult(title, lat, lon, yotoF, boukaF, chikuF) {
   const yp = yotoF?.properties || {};
   const {name: yotoName, color: bg} = getYotoInfo(yp);
-  const isShiro = !YOTO[yotoName];
+
+  // yotoFがnull（ポリゴン外）= 用途地域外（白地）として確実に判定
+  const isShiro = (yotoF === null) || !YOTO[yotoName];
   const bcr = yp["u_building_coverage_ratio_ja"] || (isShiro ? "60%"  : null);
   const far = yp["u_floor_area_ratio_ja"]        || (isShiro ? "200%" : null);
   const fg  = (yotoName==="商業地域"||yotoName==="近隣商業地域") ? "#7c4700" : "#1c2b2b";
