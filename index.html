@@ -263,7 +263,7 @@ function latLonToTile(lat, lon, z) {
 /* ============================================================
    地図初期化
    ============================================================ */
-let map, markerLayer, yotoLayer;
+let map, markerLayer, yotoLayer, chikuLayer;
 
 function initMap() {
   map = L.map("map", { zoomControl: true }).setView([26.385, 127.741], 13);
@@ -273,6 +273,7 @@ function initMap() {
   }).addTo(map);
   markerLayer = L.layerGroup().addTo(map);
   yotoLayer   = L.layerGroup().addTo(map);
+  chikuLayer  = L.layerGroup().addTo(map);
 }
 
 /* ============================================================
@@ -329,7 +330,7 @@ async function geocode(addr) {
 }
 
 /* ============================================================
-   Cloudflare Workers 経由で用途地域 GeoJSON 取得
+   Cloudflare Workers 経由で GeoJSON 取得
    ============================================================ */
 async function fetchYotoTile(endpoint, x, y, z) {
   const url = `${PROXY_BASE}?endpoint=${endpoint}&z=${z}&x=${x}&y=${y}`;
@@ -345,28 +346,33 @@ async function fetchAllYoto(lat, lon) {
   // 中心タイルと周囲（5×5）を並列取得して読谷村全域をカバー
   for (let dx = -2; dx <= 2; dx++) {
     for (let dy = -2; dy <= 2; dy++) {
-      promises.push(fetchYotoTile("XKT002", x + dx, y + dy, z));
-      promises.push(fetchYotoTile("XKT014", x + dx, y + dy, z));
+      promises.push(fetchYotoTile("XKT002", x + dx, y + dy, z)); // 用途地域
+      promises.push(fetchYotoTile("XKT014", x + dx, y + dy, z)); // 防火地域
+      promises.push(fetchYotoTile("XKT011", x + dx, y + dy, z)); // 地区計画
     }
   }
   const results = await Promise.all(promises);
   const yotoFeatures  = [];
   const boukaFeatures = [];
-  // 重複featureをIDで除去
+  const chikuFeatures = [];
   const yotoIds  = new Set();
   const boukaIds = new Set();
+  const chikuIds = new Set();
   results.forEach((gj, i) => {
     if (!gj || !gj.features) return;
+    const mod = i % 3;
     gj.features.forEach(f => {
       const id = f.id ?? JSON.stringify(f.geometry?.coordinates?.[0]?.[0]);
-      if (i % 2 === 0) {
+      if (mod === 0) {
         if (!yotoIds.has(id))  { yotoIds.add(id);  yotoFeatures.push(f); }
-      } else {
+      } else if (mod === 1) {
         if (!boukaIds.has(id)) { boukaIds.add(id); boukaFeatures.push(f); }
+      } else {
+        if (!chikuIds.has(id)) { chikuIds.add(id); chikuFeatures.push(f); }
       }
     });
   });
-  return { yotoFeatures, boukaFeatures };
+  return { yotoFeatures, boukaFeatures, chikuFeatures };
 }
 
 /* ============================================================
@@ -383,7 +389,6 @@ function pointInRing(ring, x, y) {
 }
 
 function findFeatureAt(features, lat, lon) {
-  // まずポイントインポリゴン判定
   for (const f of features) {
     const g = f.geometry;
     if (!g) continue;
@@ -393,23 +398,7 @@ function findFeatureAt(features, lat, lon) {
       if (poly[0] && pointInRing(poly[0], lon, lat)) return f;
     }
   }
-  // 判定失敗時：最も近いフィーチャーの重心を計算して最近傍を返す
-  let nearest = null, minDist = Infinity;
-  for (const f of features) {
-    const g = f.geometry;
-    if (!g) continue;
-    const polys = g.type === "Polygon"      ? [g.coordinates]
-                : g.type === "MultiPolygon" ? g.coordinates : [];
-    for (const poly of polys) {
-      if (!poly[0] || poly[0].length === 0) continue;
-      // 重心を計算
-      const cx = poly[0].reduce((s,c)=>s+c[0],0)/poly[0].length;
-      const cy = poly[0].reduce((s,c)=>s+c[1],0)/poly[0].length;
-      const d  = (cx-lon)**2 + (cy-lat)**2;
-      if (d < minDist) { minDist = d; nearest = f; }
-    }
-  }
-  return nearest;
+  return null; // ポリゴン外＝用途地域外（白地）
 }
 
 /* ============================================================
@@ -513,9 +502,32 @@ function drawYoto(features) {
 }
 
 /* ============================================================
+   地区計画レイヤー描画
+   ============================================================ */
+function drawChiku(features) {
+  chikuLayer.clearLayers();
+  if (!features.length) return;
+  L.geoJSON({ type: "FeatureCollection", features }, {
+    style: {
+      fillColor:   "transparent",
+      fillOpacity: 0,
+      color:       "#cc3300",
+      weight:      2.5,
+      opacity:     0.9,
+      dashArray:   "6 4",
+    },
+    onEachFeature: (f, layer) => {
+      const p    = f.properties || {};
+      const name = p["chiku_plan_name_ja"] || p["name"] || p["district_name"] || "地区計画";
+      layer.bindPopup(`<b>📋 地区計画</b><br>${name}`, { maxWidth: 220 });
+    },
+  }).addTo(chikuLayer);
+}
+
+/* ============================================================
    結果パネル描画
    ============================================================ */
-function showResult(geoTitle, lat, lon, yotoF, boukaF) {
+function showResult(geoTitle, lat, lon, yotoF, boukaF, chikuF) {
   const yp = yotoF?.properties || {};
 
   // youto_idで用途地域名を直接引く（最も確実な方法）
@@ -528,6 +540,7 @@ function showResult(geoTitle, lat, lon, yotoF, boukaF) {
   const isShiro = !YOTO[yotoName]; // 用途地域外（白地）判定
   const bcr = yp["u_building_coverage_ratio_ja"] || (isShiro ? "60%" : null);
   const far = yp["u_floor_area_ratio_ja"]        || (isShiro ? "200%" : null);
+
 
   const info = YOTO[yotoName];
   const bg   = info ? info.color : COLOR_SHIRO;
@@ -544,6 +557,13 @@ function showResult(geoTitle, lat, lon, yotoF, boukaF) {
   const keikanStr  = keikanZone
     ? `<span class="k-yes">⚠ 区域内の可能性あり<br><small>(${keikanZone})</small></span>`
     : '<span class="k-no">対象外（参考）</span>';
+
+  // 地区計画
+  const cp = chikuF?.properties || {};
+  const chikuName = cp["chiku_plan_name_ja"] || cp["name"] || cp["district_name"] || null;
+  const chikuStr  = chikuName
+    ? `<span class="k-yes">📋 ${chikuName}</span>`
+    : '<span class="k-no">対象外</span>';
 
   document.getElementById("result").innerHTML = `
     <div class="r-card">
@@ -565,6 +585,10 @@ function showResult(geoTitle, lat, lon, yotoF, boukaF) {
       <div class="r-row">
         <span class="r-lbl">防火・準防火</span>
         <span class="r-val">${baukaBadge}</span>
+      </div>
+      <div class="r-row">
+        <span class="r-lbl">地区計画</span>
+        <span class="r-val">${chikuStr}</span>
       </div>
       <div class="r-row">
         <span class="r-lbl">景観計画区域</span>
@@ -609,16 +633,18 @@ async function doSearch() {
       .addTo(markerLayer)
       .openPopup();
 
-    // 3. 用途地域・防火地域データ取得
-    const { yotoFeatures, boukaFeatures } = await fetchAllYoto(geo.lat, geo.lon);
+    // 3. 用途地域・防火地域・地区計画データ取得
+    const { yotoFeatures, boukaFeatures, chikuFeatures } = await fetchAllYoto(geo.lat, geo.lon);
 
     // 4. 地図描画
     drawYoto(yotoFeatures);
+    drawChiku(chikuFeatures);
 
     // 5. 地点の情報を特定して結果表示
     const yotoF  = findFeatureAt(yotoFeatures,  geo.lat, geo.lon);
     const boukaF = findFeatureAt(boukaFeatures, geo.lat, geo.lon);
-    showResult(geo.title, geo.lat, geo.lon, yotoF, boukaF);
+    const chikuF = findFeatureAt(chikuFeatures, geo.lat, geo.lon);
+    showResult(geo.title, geo.lat, geo.lon, yotoF, boukaF, chikuF);
 
   } catch (e) {
     showErr("データ取得中にエラーが発生しました。しばらくしてから再度お試しください。");
@@ -638,10 +664,10 @@ document.getElementById("addr").addEventListener("keydown", e => {
 const YOMITAN_CENTER = { lat: 26.385, lon: 127.741 };
 
 async function initYotoMap() {
-  // 読谷村中心座標で用途地域を取得して初期描画
   try {
-    const { yotoFeatures } = await fetchAllYoto(YOMITAN_CENTER.lat, YOMITAN_CENTER.lon);
+    const { yotoFeatures, chikuFeatures } = await fetchAllYoto(YOMITAN_CENTER.lat, YOMITAN_CENTER.lon);
     drawYoto(yotoFeatures);
+    drawChiku(chikuFeatures);
   } catch(e) {
     console.warn("初期描画エラー:", e);
   }
