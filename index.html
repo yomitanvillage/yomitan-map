@@ -201,29 +201,36 @@ const PROXY_BASE = "https://yomitan-proxy.yomitanvillage.workers.dev";
    用途地域 カラー定義
    ============================================================ */
 const YOTO = {
-  // 全角数字（APIの実際の値）
-  "第１種低層住居専用地域":   { color: "#7eb8f7", label: "第一種低層住居専用地域" },
-  "第２種低層住居専用地域":   { color: "#a8ccf8", label: "第二種低層住居専用地域" },
-  "第１種中高層住居専用地域": { color: "#4a9eed", label: "第一種中高層住居専用地域" },
-  "第２種中高層住居専用地域": { color: "#6cb2f0", label: "第二種中高層住居専用地域" },
-  "第１種住居地域":           { color: "#86d98a", label: "第一種住居地域" },
-  "第２種住居地域":           { color: "#a8e6aa", label: "第二種住居地域" },
-  "準住居地域":               { color: "#c5efc6", label: "準住居地域" },
-  "田園住居地域":             { color: "#52c456", label: "田園住居地域" },
-  "近隣商業地域":             { color: "#f9c74f", label: "近隣商業地域" },
-  "商業地域":                 { color: "#f4841a", label: "商業地域" },
-  "準工業地域":               { color: "#c4a8e8", label: "準工業地域" },
-  "工業地域":                 { color: "#a07ed4", label: "工業地域" },
-  "工業専用地域":             { color: "#e05c5c", label: "工業専用地域" },
+  // 全角数字（APIの実際の値）- 不動産情報ライブラリ公式カラーに統一
+  "第１種低層住居専用地域":   { color: "#b9cff7", label: "第一種低層住居専用地域" },
+  "第２種低層住居専用地域":   { color: "#c9d8f8", label: "第二種低層住居専用地域" },
+  "第１種中高層住居専用地域": { color: "#9ab8f0", label: "第一種中高層住居専用地域" },
+  "第２種中高層住居専用地域": { color: "#adc4f3", label: "第二種中高層住居専用地域" },
+  "第１種住居地域":           { color: "#b8e0a0", label: "第一種住居地域" },
+  "第２種住居地域":           { color: "#c8e8b0", label: "第二種住居地域" },
+  "準住居地域":               { color: "#d8f0c0", label: "準住居地域" },
+  "田園住居地域":             { color: "#a0d880", label: "田園住居地域" },
+  "近隣商業地域":             { color: "#f5d58a", label: "近隣商業地域" },
+  "商業地域":                 { color: "#f5a0b0", label: "商業地域" },
+  "準工業地域":               { color: "#d8c8f0", label: "準工業地域" },
+  "工業地域":                 { color: "#c8e8f8", label: "工業地域" },
+  "工業専用地域":             { color: "#b8d8f0", label: "工業専用地域" },
   // 漢数字（念のため）
-  "第一種低層住居専用地域":   { color: "#7eb8f7", label: "第一種低層住居専用地域" },
-  "第二種低層住居専用地域":   { color: "#a8ccf8", label: "第二種低層住居専用地域" },
-  "第一種中高層住居専用地域": { color: "#4a9eed", label: "第一種中高層住居専用地域" },
-  "第二種中高層住居専用地域": { color: "#6cb2f0", label: "第二種中高層住居専用地域" },
-  "第一種住居地域":           { color: "#86d98a", label: "第一種住居地域" },
-  "第二種住居地域":           { color: "#a8e6aa", label: "第二種住居地域" },
+  "第一種低層住居専用地域":   { color: "#b9cff7", label: "第一種低層住居専用地域" },
+  "第二種低層住居専用地域":   { color: "#c9d8f8", label: "第二種低層住居専用地域" },
+  "第一種中高層住居専用地域": { color: "#9ab8f0", label: "第一種中高層住居専用地域" },
+  "第二種中高層住居専用地域": { color: "#adc4f3", label: "第二種中高層住居専用地域" },
+  "第一種住居地域":           { color: "#b8e0a0", label: "第一種住居地域" },
+  "第二種住居地域":           { color: "#c8e8b0", label: "第二種住居地域" },
+  "準住居地域":               { color: "#d8f0c0", label: "準住居地域" },
+  "田園住居地域":             { color: "#a0d880", label: "田園住居地域" },
+  "近隣商業地域":             { color: "#f5d58a", label: "近隣商業地域" },
+  "商業地域":                 { color: "#f5a0b0", label: "商業地域" },
+  "準工業地域":               { color: "#d8c8f0", label: "準工業地域" },
+  "工業地域":                 { color: "#c8e8f8", label: "工業地域" },
+  "工業専用地域":             { color: "#b8d8f0", label: "工業専用地域" },
 };
-const COLOR_SHIRO = "#d0d0d0"; // 白地
+const COLOR_SHIRO = "#e8e8e8"; // 白地（用途地域外）
 
 /* ============================================================
    景観計画区域 簡易判定データ（読谷村景観計画より）
@@ -274,8 +281,16 @@ function initMap() {
 function buildLegend() {
   const el = document.getElementById("legend");
   const keys = [
-    "第１種低層住居専用地域", "第１種中高層住居専用地域",
-    "第１種住居地域", "近隣商業地域", "商業地域", "準工業地域",
+    "第１種低層住居専用地域",
+    "第１種中高層住居専用地域",
+    "第１種住居地域",
+    "準住居地域",
+    "田園住居地域",
+    "近隣商業地域",
+    "商業地域",
+    "準工業地域",
+    "工業地域",
+    "工業専用地域",
   ];
   keys.forEach(k => {
     const info = YOTO[k];
@@ -327,20 +342,29 @@ async function fetchAllYoto(lat, lon) {
   const z = 14;
   const { x, y } = latLonToTile(lat, lon, z);
   const promises = [];
-  // 中心タイルと周囲8枚（3×3）を並列取得
-  for (let dx = -1; dx <= 1; dx++) {
-    for (let dy = -1; dy <= 1; dy++) {
+  // 中心タイルと周囲（5×5）を並列取得して読谷村全域をカバー
+  for (let dx = -2; dx <= 2; dx++) {
+    for (let dy = -2; dy <= 2; dy++) {
       promises.push(fetchYotoTile("XKT002", x + dx, y + dy, z));
-      promises.push(fetchYotoTile("XKT014", x + dx, y + dy, z)); // 防火地域
+      promises.push(fetchYotoTile("XKT014", x + dx, y + dy, z));
     }
   }
   const results = await Promise.all(promises);
   const yotoFeatures  = [];
   const boukaFeatures = [];
+  // 重複featureをIDで除去
+  const yotoIds  = new Set();
+  const boukaIds = new Set();
   results.forEach((gj, i) => {
     if (!gj || !gj.features) return;
-    if (i % 2 === 0) yotoFeatures.push(...gj.features);   // XKT002
-    else             boukaFeatures.push(...gj.features);   // XKT014
+    gj.features.forEach(f => {
+      const id = f.id ?? JSON.stringify(f.geometry?.coordinates?.[0]?.[0]);
+      if (i % 2 === 0) {
+        if (!yotoIds.has(id))  { yotoIds.add(id);  yotoFeatures.push(f); }
+      } else {
+        if (!boukaIds.has(id)) { boukaIds.add(id); boukaFeatures.push(f); }
+      }
+    });
   });
   return { yotoFeatures, boukaFeatures };
 }
@@ -414,23 +438,24 @@ function getYotoName(p) {
 }
 
 function getYotoBCR(p) {
-  // "u_building_coverage_ratio_jo": "80%" → 数値に変換
   const v = getProp(p,
-    "u_building_coverage_ratio_jo",  // 確認済み
+    "u_building_coverage_ratio_jo",
     "BCR", "building_coverage_ratio", "A29_007", "建蔽率", "bcr"
   );
   if (v === null) return null;
-  return String(v).replace("%", "").trim();
+  // 値がすでに "80%" 形式の場合はそのまま、数値のみの場合は%を付ける
+  const s = String(v).trim();
+  return s.endsWith("%") ? s : s + "%";
 }
 
 function getYotoFAR(p) {
-  // "u_floor_area_ratio_jo": "200%" → 数値に変換
   const v = getProp(p,
-    "u_floor_area_ratio_jo",         // 確認済み
+    "u_floor_area_ratio_jo",
     "FAR", "floor_area_ratio", "A29_008", "容積率", "far"
   );
   if (v === null) return null;
-  return String(v).replace("%", "").trim();
+  const s = String(v).trim();
+  return s.endsWith("%") ? s : s + "%";
 }
 
 function getBoukaName(p) {
@@ -505,11 +530,11 @@ function showResult(geoTitle, lat, lon, yotoF, boukaF) {
       </div>
       <div class="r-row">
         <span class="r-lbl">建ぺい率</span>
-        <span class="r-val">${bcr != null ? bcr + "%" : "—"}</span>
+        <span class="r-val">${bcr != null ? bcr : "—"}</span>
       </div>
       <div class="r-row">
         <span class="r-lbl">容積率</span>
-        <span class="r-val">${far != null ? far + "%" : "—"}</span>
+        <span class="r-val">${far != null ? far : "—"}</span>
       </div>
       <div class="r-row">
         <span class="r-lbl">防火・準防火</span>
