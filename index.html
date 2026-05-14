@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>読谷村 都市計画情報マップ</title>
 <meta name="description" content="読谷村の用途地域・建ぺい率・容積率・景観計画区域を住所から簡単に検索できます。"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -64,8 +64,12 @@ html, body { height: 100%; font-family: 'Noto Sans JP', sans-serif; background: 
 .searchbar input {
   flex: 1; height: 38px; padding: 0 12px;
   border: 1.5px solid var(--border); border-radius: 8px;
-  font-size: 14px; font-family: inherit; color: var(--txt); background: #f8fcfb;
+  font-size: 16px; font-family: inherit; color: var(--txt); background: #f8fcfb;
   transition: border .2s, background .2s;
+}
+/* PC表示では14pxに戻す */
+@media (min-width: 601px) {
+  .searchbar input { font-size: 14px; }
 }
 .searchbar input:focus   { outline: none; border-color: var(--teal); background: #fff; }
 .searchbar input::placeholder { color: #9bb; }
@@ -94,6 +98,22 @@ html, body { height: 100%; font-family: 'Noto Sans JP', sans-serif; background: 
 .p-title           { font-size: 10px; font-weight: 700; color: var(--green); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 10px; }
 
 /* ===================== 凡例 ===================== */
+.leg-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; user-select: none;
+  font-size: 10px; font-weight: 700; color: var(--green);
+  letter-spacing: .12em; text-transform: uppercase;
+  margin-bottom: 0; padding: 0;
+  background: none; border: none; width: 100%; text-align: left;
+}
+.leg-toggle .leg-arrow {
+  font-size: 10px; color: var(--txt-sub);
+  transition: transform .2s;
+}
+.leg-toggle.open .leg-arrow { transform: rotate(180deg); }
+.leg-body { overflow: hidden; transition: max-height .25s ease; max-height: 0; }
+.leg-body.open { max-height: 400px; }
+.leg-body-inner { padding-top: 10px; }
 .leg-item   { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 11px; color: var(--txt-sub); }
 .leg-swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,.12); flex-shrink: 0; }
 
@@ -157,10 +177,15 @@ html, body { height: 100%; font-family: 'Noto Sans JP', sans-serif; background: 
     <div id="map"></div>
 
     <div class="sidepanel">
-      <!-- 凡例 -->
+      <!-- 凡例（折りたたみ） -->
       <div class="p-section">
-        <div class="p-title">用途地域 凡例</div>
-        <div id="legend"></div>
+        <button class="leg-toggle" id="leg-toggle" onclick="toggleLegend()" aria-expanded="false">
+          <span>用途地域 凡例</span>
+          <span class="leg-arrow">▼</span>
+        </button>
+        <div class="leg-body" id="leg-body">
+          <div class="leg-body-inner" id="legend"></div>
+        </div>
       </div>
 
       <!-- 検索結果 -->
@@ -505,6 +530,22 @@ async function initYotoMap() {
 buildLegend();
 initMap();
 initYotoMap();
+
+/* ===== 凡例の折りたたみ ===== */
+function toggleLegend() {
+  const toggle = document.getElementById("leg-toggle");
+  const body   = document.getElementById("leg-body");
+  const isOpen = body.classList.toggle("open");
+  toggle.classList.toggle("open", isOpen);
+  toggle.setAttribute("aria-expanded", isOpen);
+}
+
+// PC（601px以上）では初期展開
+if (window.innerWidth >= 601) {
+  document.getElementById("leg-body").classList.add("open");
+  document.getElementById("leg-toggle").classList.add("open");
+  document.getElementById("leg-toggle").setAttribute("aria-expanded", "true");
+}
 </script>
 </body>
 </html>
