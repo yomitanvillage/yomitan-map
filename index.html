@@ -85,7 +85,7 @@ html, body { height: 100%; font-family: 'Noto Sans JP', sans-serif; background: 
 .searchbar button:active   { transform: scale(.97); }
 .searchbar button:disabled { opacity: .4; cursor: not-allowed; }
 
-/* ===================== サイドパネル ===================== */
+/* ===================== サイドパネル（PC） ===================== */
 .sidepanel {
   width: 280px; flex-shrink: 0;
   background: var(--panel); border-left: 1px solid var(--border);
@@ -106,10 +106,7 @@ html, body { height: 100%; font-family: 'Noto Sans JP', sans-serif; background: 
   margin-bottom: 0; padding: 0;
   background: none; border: none; width: 100%; text-align: left;
 }
-.leg-toggle .leg-arrow {
-  font-size: 10px; color: var(--txt-sub);
-  transition: transform .2s;
-}
+.leg-toggle .leg-arrow { font-size: 10px; color: var(--txt-sub); transition: transform .2s; }
 .leg-toggle.open .leg-arrow { transform: rotate(180deg); }
 .leg-body { overflow: hidden; transition: max-height .25s ease; max-height: 0; }
 .leg-body.open { max-height: 400px; }
@@ -139,14 +136,63 @@ html, body { height: 100%; font-family: 'Noto Sans JP', sans-serif; background: 
 .footer a:hover { text-decoration: underline; }
 .footer-credit { background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 4px 8px; margin-bottom: 4px; color: #92400e; font-size: 10px; line-height: 1.6; }
 
+/* ===================== スマホ：フローティング凡例ボタン ===================== */
+.fab-legend {
+  display: none; /* PCでは非表示 */
+  position: absolute; right: 10px; bottom: 90px; z-index: 1000;
+  width: 44px; height: 44px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,.18);
+  align-items: center; justify-content: center;
+  cursor: pointer; font-size: 18px;
+}
+.fab-legend-popup {
+  display: none;
+  position: absolute; right: 60px; bottom: 90px; z-index: 1001;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.15);
+  min-width: 180px; max-height: 60vh; overflow-y: auto;
+}
+.fab-legend-popup.open { display: block; }
+.fab-legend-popup .p-title { margin-bottom: 8px; }
+
+/* ===================== スマホ：ボトムシート（検索結果） ===================== */
+.bottom-sheet {
+  display: none; /* PCでは非表示 */
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 1100;
+  background: var(--panel);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 20px rgba(0,0,0,.15);
+  max-height: 55vh;
+  transform: translateY(calc(100% - 52px)); /* ハンドル部分だけ見せる */
+  transition: transform .3s ease;
+  flex-direction: column;
+}
+.bottom-sheet.expanded { transform: translateY(0); }
+.bs-handle-wrap {
+  padding: 10px 16px 8px;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; flex-shrink: 0;
+}
+.bs-handle {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: var(--border); margin: 0 auto 6px;
+}
+.bs-title-row { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.bs-title { font-size: 12px; font-weight: 700; color: var(--green); }
+.bs-preview { font-size: 11px; color: var(--txt-sub); }
+.bs-body { flex: 1; overflow-y: auto; padding: 0 16px 16px; }
+
 /* ===================== レスポンシブ ===================== */
 @media (max-width: 600px) {
-  .main        { flex-direction: column; }
-  #map         { min-height: 55vw; flex: none; height: 55vw; max-height: 300px; }
-  .sidepanel   { width: 100%; max-height: 45vh; border-left: none; border-top: 1px solid var(--border); flex-direction: row; overflow-x: auto; }
-  .p-section   { min-width: 200px; border-bottom: none; border-right: 1px solid var(--border); }
-  .p-section.scroll { flex: 1; min-width: 260px; }
+  .main         { position: relative; flex: 1; overflow: hidden; }
+  #map          { width: 100%; height: 100%; }
+  .sidepanel    { display: none; } /* サイドパネル非表示 */
   .topbar-badge { display: none; }
+  .footer       { display: none; } /* スマホはフッター非表示（代わりにボトムシートに注意書き） */
+  .fab-legend   { display: flex; }
+  .bottom-sheet { display: flex; }
 }
 </style>
 </head>
@@ -176,6 +222,7 @@ html, body { height: 100%; font-family: 'Noto Sans JP', sans-serif; background: 
   <div class="main">
     <div id="map"></div>
 
+    <!-- PC：サイドパネル -->
     <div class="sidepanel">
       <!-- 凡例（折りたたみ） -->
       <div class="p-section">
@@ -187,14 +234,40 @@ html, body { height: 100%; font-family: 'Noto Sans JP', sans-serif; background: 
           <div class="leg-body-inner" id="legend"></div>
         </div>
       </div>
-
       <!-- 検索結果 -->
       <div class="p-section scroll">
         <div class="p-title">検索結果</div>
         <div id="result">
-          <div class="r-empty">
-            🗺️<br>住所を入力して<br>検索してください
+          <div class="r-empty">🗺️<br>住所を入力して<br>検索してください</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- スマホ：フローティング凡例ボタン -->
+    <button class="fab-legend" id="fab-legend" onclick="toggleFabLegend()" aria-label="凡例を表示">🗂</button>
+    <div class="fab-legend-popup" id="fab-legend-popup">
+      <div class="p-title">用途地域 凡例</div>
+      <div id="legend-mob"></div>
+    </div>
+
+    <!-- スマホ：ボトムシート（検索結果） -->
+    <div class="bottom-sheet" id="bottom-sheet">
+      <div class="bs-handle-wrap" onclick="toggleBottomSheet()">
+        <div style="width:100%">
+          <div class="bs-handle"></div>
+          <div class="bs-title-row">
+            <span class="bs-title">検索結果</span>
+            <span class="bs-preview" id="bs-preview">住所を入力して検索</span>
           </div>
+        </div>
+      </div>
+      <div class="bs-body">
+        <div id="result-mob">
+          <div class="r-empty">🗺️<br>住所を入力して<br>検索してください</div>
+        </div>
+        <div style="font-size:10px;color:var(--txt-sub);line-height:1.7;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+          データ: <a href="https://www.reinfolib.mlit.go.jp" target="_blank" rel="noopener" style="color:var(--teal)">国交省 不動産情報ライブラリ</a>
+          ／正式な規制は都市計画課（☎ 098-982-9220）へ
         </div>
       </div>
     </div>
@@ -291,20 +364,21 @@ function initMap() {
   chikuLayer  = L.layerGroup().addTo(map);
 }
 
-/* ===== 凡例 ===== */
+/* ===== 凡例描画（PC・スマホ両方） ===== */
 function buildLegend() {
-  const el = document.getElementById("legend");
   const keys = [
     "第１種低層住居専用地域","第１種中高層住居専用地域",
     "第１種住居地域","準住居地域","田園住居地域",
     "近隣商業地域","商業地域","準工業地域","工業地域","工業専用地域",
   ];
-  keys.forEach(k => {
+  const html = keys.map(k => {
     const info = YOTO[k];
-    el.innerHTML += `<div class="leg-item"><div class="leg-swatch" style="background:${info.color}"></div><span>${info.label}</span></div>`;
-  });
-  el.innerHTML += `<div class="leg-item"><div class="leg-swatch" style="background:${COLOR_SHIRO}"></div><span>用途地域外（白地）</span></div>`;
-  el.innerHTML += `<div class="leg-item"><div class="leg-swatch" style="background:transparent;border:2px dashed #cc3300"></div><span>地区計画区域</span></div>`;
+    return `<div class="leg-item"><div class="leg-swatch" style="background:${info.color}"></div><span>${info.label}</span></div>`;
+  }).join("") +
+  `<div class="leg-item"><div class="leg-swatch" style="background:${COLOR_SHIRO}"></div><span>用途地域外（白地）</span></div>` +
+  `<div class="leg-item"><div class="leg-swatch" style="background:transparent;border:2px dashed #cc3300"></div><span>地区計画区域</span></div>`;
+  document.getElementById("legend").innerHTML     = html;
+  document.getElementById("legend-mob").innerHTML = html;
 }
 
 /* ===== ローディング ===== */
@@ -470,7 +544,7 @@ function showResult(title, lat, lon, yotoF, boukaF, chikuF) {
     ? `<span class="k-yes">⚠ 区域内の可能性あり<br><small>(${keikan})</small></span>`
     : '<span class="k-no">対象外（参考）</span>';
 
-  document.getElementById("result").innerHTML = `
+  const html = `
     <div class="r-card">
       <div class="r-addr">📍 ${title}</div>
       <div class="r-row"><span class="r-lbl">用途地域</span><span class="r-val"><span class="yoto-badge" style="background:${bg};color:${fg}">${yotoName}</span></span></div>
@@ -481,6 +555,15 @@ function showResult(title, lat, lon, yotoF, boukaF, chikuF) {
       <div class="r-row"><span class="r-lbl">景観計画区域</span><span class="r-val">${keikanStr}</span></div>
     </div>
     <div class="notice">⚠ この情報は参考です。正式な都市計画規制は<br><b>都市計画課</b>（☎ 098-982-9220）でご確認ください。</div>`;
+
+  document.getElementById("result").innerHTML     = html;
+  document.getElementById("result-mob").innerHTML = html;
+
+  // スマホ：ボトムシートのプレビュー更新＆自動展開
+  const preview = document.getElementById("bs-preview");
+  if (preview) preview.textContent = yotoName;
+  const bs = document.getElementById("bottom-sheet");
+  if (bs) bs.classList.add("expanded");
 }
 
 function showErr(msg) {
@@ -531,7 +614,7 @@ buildLegend();
 initMap();
 initYotoMap();
 
-/* ===== 凡例の折りたたみ ===== */
+/* ===== 凡例の折りたたみ（PC） ===== */
 function toggleLegend() {
   const toggle = document.getElementById("leg-toggle");
   const body   = document.getElementById("leg-body");
@@ -540,7 +623,26 @@ function toggleLegend() {
   toggle.setAttribute("aria-expanded", isOpen);
 }
 
-// PC（601px以上）では初期展開
+/* ===== スマホ：フローティング凡例 ===== */
+function toggleFabLegend() {
+  const popup = document.getElementById("fab-legend-popup");
+  popup.classList.toggle("open");
+}
+// 凡例以外タップで閉じる
+document.addEventListener("click", e => {
+  const fab   = document.getElementById("fab-legend");
+  const popup = document.getElementById("fab-legend-popup");
+  if (popup && !fab?.contains(e.target) && !popup.contains(e.target)) {
+    popup.classList.remove("open");
+  }
+});
+
+/* ===== スマホ：ボトムシート開閉 ===== */
+function toggleBottomSheet() {
+  document.getElementById("bottom-sheet")?.classList.toggle("expanded");
+}
+
+// PC（601px以上）では凡例を初期展開
 if (window.innerWidth >= 601) {
   document.getElementById("leg-body").classList.add("open");
   document.getElementById("leg-toggle").classList.add("open");
