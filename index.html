@@ -201,6 +201,7 @@ const PROXY_BASE = "https://yomitan-proxy.yomitanvillage.workers.dev";
    用途地域 カラー定義
    ============================================================ */
 const YOTO = {
+  // 全角数字（APIの実際の値）
   "第１種低層住居専用地域":   { color: "#7eb8f7", label: "第一種低層住居専用地域" },
   "第２種低層住居専用地域":   { color: "#a8ccf8", label: "第二種低層住居専用地域" },
   "第１種中高層住居専用地域": { color: "#4a9eed", label: "第一種中高層住居専用地域" },
@@ -214,6 +215,13 @@ const YOTO = {
   "準工業地域":               { color: "#c4a8e8", label: "準工業地域" },
   "工業地域":                 { color: "#a07ed4", label: "工業地域" },
   "工業専用地域":             { color: "#e05c5c", label: "工業専用地域" },
+  // 漢数字（念のため）
+  "第一種低層住居専用地域":   { color: "#7eb8f7", label: "第一種低層住居専用地域" },
+  "第二種低層住居専用地域":   { color: "#a8ccf8", label: "第二種低層住居専用地域" },
+  "第一種中高層住居専用地域": { color: "#4a9eed", label: "第一種中高層住居専用地域" },
+  "第二種中高層住居専用地域": { color: "#6cb2f0", label: "第二種中高層住居専用地域" },
+  "第一種住居地域":           { color: "#86d98a", label: "第一種住居地域" },
+  "第二種住居地域":           { color: "#a8e6aa", label: "第二種住居地域" },
 };
 const COLOR_SHIRO = "#d0d0d0"; // 白地
 
@@ -384,8 +392,9 @@ const YOTO_CODE = {
 };
 
 function getYotoName(p) {
-  // 名称系フィールドを優先
+  // 実際のAPIフィールド名（確認済み）
   const nameVal = getProp(p,
+    "use_area_jo",          // 確認済み: "近隣商業地域" など
     "YoutoName", "youto_class_name", "youto_name",
     "A29_006_名称", "用途地域", "YOUTO"
   );
@@ -393,33 +402,42 @@ function getYotoName(p) {
 
   // コード系フィールドから変換
   const codeVal = getProp(p,
-    "A29_006", "youto_code", "YOUTO_CODE"
+    "youto_id", "A29_006", "youto_code", "YOUTO_CODE"
   );
   if (codeVal !== null) {
     const fromCode = YOTO_CODE[String(codeVal)];
     if (fromCode) return fromCode;
   }
 
-  // 名称が取れた場合でもYOTOに無い場合はそのまま返す
   if (nameVal) return nameVal;
-
-  // 全プロパティをコンソールに出力（デバッグ用）
-  console.log("【デバッグ】用途地域フィールド不明 properties:", JSON.stringify(p));
   return null;
 }
 
 function getYotoBCR(p) {
-  const v = getProp(p, "BCR", "building_coverage_ratio", "A29_007", "建蔽率", "bcr");
-  return v !== null ? v : null;
+  // "u_building_coverage_ratio_jo": "80%" → 数値に変換
+  const v = getProp(p,
+    "u_building_coverage_ratio_jo",  // 確認済み
+    "BCR", "building_coverage_ratio", "A29_007", "建蔽率", "bcr"
+  );
+  if (v === null) return null;
+  return String(v).replace("%", "").trim();
 }
 
 function getYotoFAR(p) {
-  const v = getProp(p, "FAR", "floor_area_ratio", "A29_008", "容積率", "far");
-  return v !== null ? v : null;
+  // "u_floor_area_ratio_jo": "200%" → 数値に変換
+  const v = getProp(p,
+    "u_floor_area_ratio_jo",         // 確認済み
+    "FAR", "floor_area_ratio", "A29_008", "容積率", "far"
+  );
+  if (v === null) return null;
+  return String(v).replace("%", "").trim();
 }
 
 function getBoukaName(p) {
-  return getProp(p, "AreaName", "fire_prevention_class_name", "A30a_003", "防火地域", "bouka") || "";
+  return getProp(p,
+    "use_area_jo",  // 防火地域APIのフィールドも同名の可能性あり
+    "AreaName", "fire_prevention_class_name", "A30a_003", "防火地域", "bouka"
+  ) || "";
 }
 
 /* ============================================================
