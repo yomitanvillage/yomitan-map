@@ -364,6 +364,65 @@ function findFeatureAt(features, lat, lon) {
 }
 
 /* ============================================================
+   プロパティ名を複数候補から自動検出するヘルパー
+   ============================================================ */
+function getProp(p, ...keys) {
+  for (const k of keys) {
+    if (p[k] !== undefined && p[k] !== null && p[k] !== "") return p[k];
+  }
+  return null;
+}
+
+// 用途地域名を取得（国交省APIの属性コードに対応）
+// A29_006: 用途地域コード → 名称変換も行う
+const YOTO_CODE = {
+  "1":"第１種低層住居専用地域","2":"第２種低層住居専用地域",
+  "3":"第１種中高層住居専用地域","4":"第２種中高層住居専用地域",
+  "5":"第１種住居地域","6":"第２種住居地域","7":"準住居地域",
+  "8":"田園住居地域","9":"近隣商業地域","10":"商業地域",
+  "11":"準工業地域","12":"工業地域","13":"工業専用地域",
+};
+
+function getYotoName(p) {
+  // 名称系フィールドを優先
+  const nameVal = getProp(p,
+    "YoutoName", "youto_class_name", "youto_name",
+    "A29_006_名称", "用途地域", "YOUTO"
+  );
+  if (nameVal && YOTO[nameVal]) return nameVal;
+
+  // コード系フィールドから変換
+  const codeVal = getProp(p,
+    "A29_006", "youto_code", "YOUTO_CODE"
+  );
+  if (codeVal !== null) {
+    const fromCode = YOTO_CODE[String(codeVal)];
+    if (fromCode) return fromCode;
+  }
+
+  // 名称が取れた場合でもYOTOに無い場合はそのまま返す
+  if (nameVal) return nameVal;
+
+  // 全プロパティをコンソールに出力（デバッグ用）
+  console.log("【デバッグ】用途地域フィールド不明 properties:", JSON.stringify(p));
+  return null;
+}
+
+function getYotoBCR(p) {
+  const v = getProp(p, "BCR", "building_coverage_ratio", "A29_007", "建蔽率", "bcr");
+  return v !== null ? v : null;
+}
+
+function getYotoFAR(p) {
+  const v = getProp(p, "FAR", "floor_area_ratio", "A29_008", "容積率", "far");
+  return v !== null ? v : null;
+}
+
+function getBoukaName(p) {
+  return getProp(p, "AreaName", "fire_prevention_class_name", "A30a_003", "防火地域", "bouka") || "";
+}
+
+/* ============================================================
    GeoJSON 地図描画
    ============================================================ */
 function drawYoto(features) {
@@ -371,8 +430,8 @@ function drawYoto(features) {
   if (!features.length) return;
   L.geoJSON({ type: "FeatureCollection", features }, {
     style: f => {
-      const name = f.properties?.YoutoName || f.properties?.youto_class_name || "";
-      const info = YOTO[name];
+      const name = getYotoName(f.properties || {});
+      const info = name ? YOTO[name] : null;
       return {
         fillColor:   info ? info.color : COLOR_SHIRO,
         fillOpacity: 0.55,
@@ -382,10 +441,10 @@ function drawYoto(features) {
       };
     },
     onEachFeature: (f, layer) => {
-      const p    = f.properties || {};
-      const name = p.YoutoName  || p.youto_class_name || "用途地域外";
-      const bcr  = p.BCR  ?? p.building_coverage_ratio ?? "—";
-      const far  = p.FAR  ?? p.floor_area_ratio        ?? "—";
+      const p   = f.properties || {};
+      const name = getYotoName(p) || "用途地域外";
+      const bcr  = getYotoBCR(p) ?? "—";
+      const far  = getYotoFAR(p) ?? "—";
       layer.bindPopup(
         `<b>${name}</b><br>建ぺい率: ${bcr !== "—" ? bcr + "%" : "—"}<br>容積率: ${far !== "—" ? far + "%" : "—"}`,
         { maxWidth: 200 }
@@ -400,14 +459,14 @@ function drawYoto(features) {
 function showResult(geoTitle, lat, lon, yotoF, boukaF) {
   const yp   = yotoF?.properties  || {};
   const bp   = boukaF?.properties || {};
-  const name = yp.YoutoName  || yp.youto_class_name  || "用途地域外（白地）";
-  const bcr  = yp.BCR  ?? yp.building_coverage_ratio;
-  const far  = yp.FAR  ?? yp.floor_area_ratio;
+  const name = getYotoName(yp) || "用途地域外（白地）";
+  const bcr  = getYotoBCR(yp);
+  const far  = getYotoFAR(yp);
   const info = YOTO[name];
   const bg   = info ? info.color : COLOR_SHIRO;
   const fg   = (name === "商業地域" || name === "近隣商業地域") ? "#7c4700" : "#1c2b2b";
 
-  const boukaName = bp.AreaName || bp.fire_prevention_class_name || "";
+  const boukaName = getBoukaName(bp);
   const baukaBadge = boukaName
     ? `<span class="yoto-badge" style="background:#fee2e2;color:#991b1b">${boukaName}</span>`
     : '<span class="k-no">指定なし</span>';
