@@ -447,22 +447,22 @@ function getYotoName(p) {
     if (fromId) return fromId;
   }
   // フォールバック: 文字列フィールド
-  const nameVal = getProp(p, "use_area_jo", "YoutoName", "youto_class_name");
+  const nameVal = getProp(p, "use_area_ja", "YoutoName", "youto_class_name");
   if (nameVal) return nameVal;
   return null;
 }
 
 function getYotoBCR(p) {
-  // u_building_coverage_ratio_jo: "50%" → そのまま返す
-  const v = getProp(p, "u_building_coverage_ratio_jo", "BCR", "building_coverage_ratio");
+  // u_building_coverage_ratio_ja: "50%" → そのまま返す
+  const v = getProp(p, "u_building_coverage_ratio_ja", "BCR", "building_coverage_ratio");
   if (v === null) return null;
   const s = String(v).trim();
   return s || null;
 }
 
 function getYotoFAR(p) {
-  // u_floor_area_ratio_jo: "100%" → そのまま返す
-  const v = getProp(p, "u_floor_area_ratio_jo", "FAR", "floor_area_ratio");
+  // u_floor_area_ratio_ja: "100%" → そのまま返す
+  const v = getProp(p, "u_floor_area_ratio_ja", "FAR", "floor_area_ratio");
   if (v === null) return null;
   const s = String(v).trim();
   return s || null;
@@ -470,7 +470,7 @@ function getYotoFAR(p) {
 
 function getBoukaName(p) {
   return getProp(p,
-    "use_area_jo",  // 防火地域APIのフィールドも同名の可能性あり
+    "use_area_ja",  // 防火地域APIのフィールドも同名の可能性あり
     "AreaName", "fire_prevention_class_name", "A30a_003", "防火地域", "bouka"
   ) || "";
 }
@@ -486,7 +486,7 @@ function drawYoto(features) {
       const p      = f.properties || {};
       const yotoId = p["youto_id"];
       const name   = (yotoId != null ? YOTO_CODE[String(yotoId)] : null)
-                  || p["use_area_jo"] || "";
+                  || p["use_area_ja"] || "";
       const info   = YOTO[name];
       return {
         fillColor:   info ? info.color : COLOR_SHIRO,
@@ -500,9 +500,9 @@ function drawYoto(features) {
       const p      = f.properties || {};
       const yotoId = p["youto_id"];
       const name   = (yotoId != null ? YOTO_CODE[String(yotoId)] : null)
-                  || p["use_area_jo"] || "用途地域外";
-      const bcr    = p["u_building_coverage_ratio_jo"] || "—";
-      const far    = p["u_floor_area_ratio_jo"]        || "—";
+                  || p["use_area_ja"] || "用途地域外";
+      const bcr    = p["u_building_coverage_ratio_ja"] || "—";
+      const far    = p["u_floor_area_ratio_ja"]        || "—";
       layer.bindPopup(
         `<b>${name}</b><br>建ぺい率: ${bcr}<br>容積率: ${far}`,
         { maxWidth: 200 }
@@ -520,12 +520,12 @@ function showResult(geoTitle, lat, lon, yotoF, boukaF) {
   // youto_idで用途地域名を直接引く（最も確実な方法）
   const yotoId   = yp["youto_id"];
   const yotoName = (yotoId != null ? YOTO_CODE[String(yotoId)] : null)
-                || yp["use_area_jo"]
+                || yp["use_area_ja"]
                 || "用途地域外（白地）";
 
   // 建ぺい率・容積率を直接取得
-  const bcr = yp["u_building_coverage_ratio_jo"] || null;
-  const far = yp["u_floor_area_ratio_jo"]        || null;
+  const bcr = yp["u_building_coverage_ratio_ja"] || null;
+  const far = yp["u_floor_area_ratio_ja"]        || null;
 
   const info = YOTO[yotoName];
   const bg   = info ? info.color : COLOR_SHIRO;
@@ -533,7 +533,7 @@ function showResult(geoTitle, lat, lon, yotoF, boukaF) {
 
   // 防火地域
   const bp        = boukaF?.properties || {};
-  const boukaName = bp["use_area_jo"] || bp["AreaName"] || "";
+  const boukaName = bp["use_area_ja"] || bp["AreaName"] || "";
   const baukaBadge = boukaName
     ? `<span class="yoto-badge" style="background:#fee2e2;color:#991b1b">${boukaName}</span>`
     : '<span class="k-no">指定なし</span>';
@@ -616,12 +616,6 @@ async function doSearch() {
     // 5. 地点の情報を特定して結果表示
     const yotoF  = findFeatureAt(yotoFeatures,  geo.lat, geo.lon);
     const boukaF = findFeatureAt(boukaFeatures, geo.lat, geo.lon);
-    // ★デバッグ
-    const yp = yotoF?.properties || {};
-    console.log("★BCR直接:", yp["u_building_coverage_ratio_jo"]);
-    console.log("★FAR直接:", yp["u_floor_area_ratio_jo"]);
-    console.log("★youto_id:", yp["youto_id"]);
-    console.log("★全keys:", Object.keys(yp));
     showResult(geo.title, geo.lat, geo.lon, yotoF, boukaF);
 
   } catch (e) {
