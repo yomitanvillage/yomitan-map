@@ -40,6 +40,9 @@ html, body { height: 100%; font-family: 'Noto Sans JP', sans-serif; background: 
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0,50,30,.2);
   z-index: 1000;
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
 }
 .topbar-logo       { font-size: 17px; font-weight: 700; letter-spacing: .03em; line-height: 1.3; }
 .topbar-logo span  { font-size: 10px; font-weight: 400; opacity: .75; display: block; letter-spacing: .12em; margin-top: 1px; }
@@ -60,12 +63,16 @@ html, body { height: 100%; font-family: 'Noto Sans JP', sans-serif; background: 
   flex-shrink: 0;
   box-shadow: var(--shadow);
   z-index: 900;
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
 }
 .searchbar input {
-  flex: 1; height: 38px; padding: 0 12px;
+  flex: 1; min-width: 0; height: 38px; padding: 0 12px;
   border: 1.5px solid var(--border); border-radius: 8px;
   font-size: 16px; font-family: inherit; color: var(--txt); background: #f8fcfb;
   transition: border .2s, background .2s;
+  box-sizing: border-box;
 }
 /* PC表示では14pxに戻す */
 @media (min-width: 601px) {
@@ -74,11 +81,11 @@ html, body { height: 100%; font-family: 'Noto Sans JP', sans-serif; background: 
 .searchbar input:focus   { outline: none; border-color: var(--teal); background: #fff; }
 .searchbar input::placeholder { color: #9bb; }
 .searchbar button {
-  height: 38px; padding: 0 18px;
+  height: 38px; padding: 0 14px;
   background: var(--teal); color: #fff;
   border: none; border-radius: 8px;
   font-size: 13px; font-family: inherit; font-weight: 700;
-  cursor: pointer; white-space: nowrap;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
   transition: opacity .2s, transform .1s;
 }
 .searchbar button:hover    { opacity: .88; }
