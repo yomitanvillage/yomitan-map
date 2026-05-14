@@ -201,34 +201,34 @@ const PROXY_BASE = "https://yomitan-proxy.yomitanvillage.workers.dev";
    用途地域 カラー定義
    ============================================================ */
 const YOTO = {
-  // 全角数字（APIの実際の値）- 不動産情報ライブラリ公式カラー
-  "第１種低層住居専用地域":   { color: "#aec6e8", label: "第一種低層住居専用地域" },
-  "第２種低層住居専用地域":   { color: "#c2d4ef", label: "第二種低層住居専用地域" },
-  "第１種中高層住居専用地域": { color: "#7aaad4", label: "第一種中高層住居専用地域" },
-  "第２種中高層住居専用地域": { color: "#94bede", label: "第二種中高層住居専用地域" },
-  "第１種住居地域":           { color: "#a8d08d", label: "第一種住居地域" },
-  "第２種住居地域":           { color: "#bcdba4", label: "第二種住居地域" },
-  "準住居地域":               { color: "#d0e8b8", label: "準住居地域" },
-  "田園住居地域":             { color: "#78c878", label: "田園住居地域" },
-  "近隣商業地域":             { color: "#f0d080", label: "近隣商業地域" },
-  "商業地域":                 { color: "#f0a0b4", label: "商業地域" },
-  "準工業地域":               { color: "#c8b4e8", label: "準工業地域" },
-  "工業地域":                 { color: "#a8d8f0", label: "工業地域" },
-  "工業専用地域":             { color: "#88c4e8", label: "工業専用地域" },
-  // 漢数字（念のため）
-  "第一種低層住居専用地域":   { color: "#aec6e8", label: "第一種低層住居専用地域" },
-  "第二種低層住居専用地域":   { color: "#c2d4ef", label: "第二種低層住居専用地域" },
-  "第一種中高層住居専用地域": { color: "#7aaad4", label: "第一種中高層住居専用地域" },
-  "第二種中高層住居専用地域": { color: "#94bede", label: "第二種中高層住居専用地域" },
-  "第一種住居地域":           { color: "#a8d08d", label: "第一種住居地域" },
-  "第二種住居地域":           { color: "#bcdba4", label: "第二種住居地域" },
-  "準住居地域":               { color: "#d0e8b8", label: "準住居地域" },
-  "田園住居地域":             { color: "#78c878", label: "田園住居地域" },
-  "近隣商業地域":             { color: "#f0d080", label: "近隣商業地域" },
-  "商業地域":                 { color: "#f0a0b4", label: "商業地域" },
-  "準工業地域":               { color: "#c8b4e8", label: "準工業地域" },
-  "工業地域":                 { color: "#a8d8f0", label: "工業地域" },
-  "工業専用地域":             { color: "#88c4e8", label: "工業専用地域" },
+  // youto_idで引くためYOTO_CODEの値と完全一致させる（全角数字）
+  "第１種低層住居専用地域":   { color: "#b3c9e8", label: "第一種低層住居専用地域" },
+  "第２種低層住居専用地域":   { color: "#c5d8f0", label: "第二種低層住居専用地域" },
+  "第１種中高層住居専用地域": { color: "#7aafd4", label: "第一種中高層住居専用地域" },
+  "第２種中高層住居専用地域": { color: "#8fbede", label: "第二種中高層住居専用地域" },
+  "第１種住居地域":           { color: "#9dcc88", label: "第一種住居地域" },
+  "第２種住居地域":           { color: "#b4d9a0", label: "第二種住居地域" },
+  "準住居地域":               { color: "#cce6b8", label: "準住居地域" },
+  "田園住居地域":             { color: "#72c472", label: "田園住居地域" },
+  "近隣商業地域":             { color: "#f2cc6e", label: "近隣商業地域" },
+  "商業地域":                 { color: "#f09eb4", label: "商業地域" },
+  "準工業地域":               { color: "#c0aadc", label: "準工業地域" },
+  "工業地域":                 { color: "#a2d4ec", label: "工業地域" },
+  "工業専用地域":             { color: "#80bce0", label: "工業専用地域" },
+  // 漢数字フォールバック
+  "第一種低層住居専用地域":   { color: "#b3c9e8", label: "第一種低層住居専用地域" },
+  "第二種低層住居専用地域":   { color: "#c5d8f0", label: "第二種低層住居専用地域" },
+  "第一種中高層住居専用地域": { color: "#7aafd4", label: "第一種中高層住居専用地域" },
+  "第二種中高層住居専用地域": { color: "#8fbede", label: "第二種中高層住居専用地域" },
+  "第一種住居地域":           { color: "#9dcc88", label: "第一種住居地域" },
+  "第二種住居地域":           { color: "#b4d9a0", label: "第二種住居地域" },
+  "準住居地域":               { color: "#cce6b8", label: "準住居地域" },
+  "田園住居地域":             { color: "#72c472", label: "田園住居地域" },
+  "近隣商業地域":             { color: "#f2cc6e", label: "近隣商業地域" },
+  "商業地域":                 { color: "#f09eb4", label: "商業地域" },
+  "準工業地域":               { color: "#c0aadc", label: "準工業地域" },
+  "工業地域":                 { color: "#a2d4ec", label: "工業地域" },
+  "工業専用地域":             { color: "#80bce0", label: "工業専用地域" },
 };
 const COLOR_SHIRO = "#e8e8e8"; // 白地（用途地域外）
 
@@ -422,57 +422,50 @@ function getProp(p, ...keys) {
   return null;
 }
 
-// 用途地域名を取得（国交省APIの属性コードに対応）
-// A29_006: 用途地域コード → 名称変換も行う
+// youto_id（数値）→ YOTOのキー（全角数字）へのマッピング
 const YOTO_CODE = {
-  "1":"第１種低層住居専用地域","2":"第２種低層住居専用地域",
-  "3":"第１種中高層住居専用地域","4":"第２種中高層住居専用地域",
-  "5":"第１種住居地域","6":"第２種住居地域","7":"準住居地域",
-  "8":"田園住居地域","9":"近隣商業地域","10":"商業地域",
-  "11":"準工業地域","12":"工業地域","13":"工業専用地域",
+  "1": "第１種低層住居専用地域",
+  "2": "第２種低層住居専用地域",
+  "3": "第１種中高層住居専用地域",
+  "4": "第２種中高層住居専用地域",
+  "5": "第１種住居地域",
+  "6": "第２種住居地域",
+  "7": "準住居地域",
+  "8": "田園住居地域",
+  "9": "近隣商業地域",
+  "10": "商業地域",
+  "11": "準工業地域",
+  "12": "工業地域",
+  "13": "工業専用地域",
 };
 
 function getYotoName(p) {
-  // 実際のAPIフィールド名（確認済み）
-  const nameVal = getProp(p,
-    "use_area_jo",          // 確認済み: "近隣商業地域" など
-    "YoutoName", "youto_class_name", "youto_name",
-    "A29_006_名称", "用途地域", "YOUTO"
-  );
-  if (nameVal && YOTO[nameVal]) return nameVal;
-
-  // コード系フィールドから変換
-  const codeVal = getProp(p,
-    "youto_id", "A29_006", "youto_code", "YOUTO_CODE"
-  );
-  if (codeVal !== null) {
-    const fromCode = YOTO_CODE[String(codeVal)];
-    if (fromCode) return fromCode;
+  // youto_id（数値）を最優先で使用 → 確実にYOTOキーと一致
+  const id = getProp(p, "youto_id");
+  if (id !== null) {
+    const fromId = YOTO_CODE[String(id)];
+    if (fromId) return fromId;
   }
-
+  // フォールバック: 文字列フィールド
+  const nameVal = getProp(p, "use_area_jo", "YoutoName", "youto_class_name");
   if (nameVal) return nameVal;
   return null;
 }
 
 function getYotoBCR(p) {
-  const v = getProp(p,
-    "u_building_coverage_ratio_jo",
-    "BCR", "building_coverage_ratio", "A29_007", "建蔽率", "bcr"
-  );
+  // u_building_coverage_ratio_jo: "50%" → そのまま返す
+  const v = getProp(p, "u_building_coverage_ratio_jo", "BCR", "building_coverage_ratio");
   if (v === null) return null;
-  // 値がすでに "80%" 形式の場合はそのまま、数値のみの場合は%を付ける
   const s = String(v).trim();
-  return s.endsWith("%") ? s : s + "%";
+  return s || null;
 }
 
 function getYotoFAR(p) {
-  const v = getProp(p,
-    "u_floor_area_ratio_jo",
-    "FAR", "floor_area_ratio", "A29_008", "容積率", "far"
-  );
+  // u_floor_area_ratio_jo: "100%" → そのまま返す
+  const v = getProp(p, "u_floor_area_ratio_jo", "FAR", "floor_area_ratio");
   if (v === null) return null;
   const s = String(v).trim();
-  return s.endsWith("%") ? s : s + "%";
+  return s || null;
 }
 
 function getBoukaName(p) {
