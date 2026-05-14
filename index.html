@@ -483,8 +483,11 @@ function drawYoto(features) {
   if (!features.length) return;
   L.geoJSON({ type: "FeatureCollection", features }, {
     style: f => {
-      const name = getYotoName(f.properties || {});
-      const info = name ? YOTO[name] : null;
+      const p      = f.properties || {};
+      const yotoId = p["youto_id"];
+      const name   = (yotoId != null ? YOTO_CODE[String(yotoId)] : null)
+                  || p["use_area_jo"] || "";
+      const info   = YOTO[name];
       return {
         fillColor:   info ? info.color : COLOR_SHIRO,
         fillOpacity: 0.55,
@@ -494,12 +497,14 @@ function drawYoto(features) {
       };
     },
     onEachFeature: (f, layer) => {
-      const p   = f.properties || {};
-      const name = getYotoName(p) || "用途地域外";
-      const bcr  = getYotoBCR(p) ?? "—";
-      const far  = getYotoFAR(p) ?? "—";
+      const p      = f.properties || {};
+      const yotoId = p["youto_id"];
+      const name   = (yotoId != null ? YOTO_CODE[String(yotoId)] : null)
+                  || p["use_area_jo"] || "用途地域外";
+      const bcr    = p["u_building_coverage_ratio_jo"] || "—";
+      const far    = p["u_floor_area_ratio_jo"]        || "—";
       layer.bindPopup(
-        `<b>${name}</b><br>建ぺい率: ${bcr !== "—" ? bcr + "%" : "—"}<br>容積率: ${far !== "—" ? far + "%" : "—"}`,
+        `<b>${name}</b><br>建ぺい率: ${bcr}<br>容積率: ${far}`,
         { maxWidth: 200 }
       );
     },
@@ -510,16 +515,25 @@ function drawYoto(features) {
    結果パネル描画
    ============================================================ */
 function showResult(geoTitle, lat, lon, yotoF, boukaF) {
-  const yp   = yotoF?.properties  || {};
-  const bp   = boukaF?.properties || {};
-  const name = getYotoName(yp) || "用途地域外（白地）";
-  const bcr  = getYotoBCR(yp);
-  const far  = getYotoFAR(yp);
-  const info = YOTO[name];
-  const bg   = info ? info.color : COLOR_SHIRO;
-  const fg   = (name === "商業地域" || name === "近隣商業地域") ? "#7c4700" : "#1c2b2b";
+  const yp = yotoF?.properties || {};
 
-  const boukaName = getBoukaName(bp);
+  // youto_idで用途地域名を直接引く（最も確実な方法）
+  const yotoId   = yp["youto_id"];
+  const yotoName = (yotoId != null ? YOTO_CODE[String(yotoId)] : null)
+                || yp["use_area_jo"]
+                || "用途地域外（白地）";
+
+  // 建ぺい率・容積率を直接取得
+  const bcr = yp["u_building_coverage_ratio_jo"] || null;
+  const far = yp["u_floor_area_ratio_jo"]        || null;
+
+  const info = YOTO[yotoName];
+  const bg   = info ? info.color : COLOR_SHIRO;
+  const fg   = (yotoName === "商業地域" || yotoName === "近隣商業地域") ? "#7c4700" : "#1c2b2b";
+
+  // 防火地域
+  const bp        = boukaF?.properties || {};
+  const boukaName = bp["use_area_jo"] || bp["AreaName"] || "";
   const baukaBadge = boukaName
     ? `<span class="yoto-badge" style="background:#fee2e2;color:#991b1b">${boukaName}</span>`
     : '<span class="k-no">指定なし</span>';
@@ -535,16 +549,16 @@ function showResult(geoTitle, lat, lon, yotoF, boukaF) {
       <div class="r-row">
         <span class="r-lbl">用途地域</span>
         <span class="r-val">
-          <span class="yoto-badge" style="background:${bg};color:${fg}">${name}</span>
+          <span class="yoto-badge" style="background:${bg};color:${fg}">${yotoName}</span>
         </span>
       </div>
       <div class="r-row">
         <span class="r-lbl">建ぺい率</span>
-        <span class="r-val">${bcr != null ? bcr : "—"}</span>
+        <span class="r-val">${bcr ?? "—"}</span>
       </div>
       <div class="r-row">
         <span class="r-lbl">容積率</span>
-        <span class="r-val">${far != null ? far : "—"}</span>
+        <span class="r-val">${far ?? "—"}</span>
       </div>
       <div class="r-row">
         <span class="r-lbl">防火・準防火</span>
