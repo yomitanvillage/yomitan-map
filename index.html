@@ -616,9 +616,12 @@ async function doSearch() {
     // 5. 地点の情報を特定して結果表示
     const yotoF  = findFeatureAt(yotoFeatures,  geo.lat, geo.lon);
     const boukaF = findFeatureAt(boukaFeatures, geo.lat, geo.lon);
-    // ★デバッグ: 実際のフィールド名をコンソールに出力
-    console.log("★YOTO properties:", JSON.stringify(yotoF?.properties));
-    console.log("★BOUKA properties:", JSON.stringify(boukaF?.properties));
+    // ★デバッグ
+    const yp = yotoF?.properties || {};
+    console.log("★BCR直接:", yp["u_building_coverage_ratio_jo"]);
+    console.log("★FAR直接:", yp["u_floor_area_ratio_jo"]);
+    console.log("★youto_id:", yp["youto_id"]);
+    console.log("★全keys:", Object.keys(yp));
     showResult(geo.title, geo.lat, geo.lon, yotoF, boukaF);
 
   } catch (e) {
