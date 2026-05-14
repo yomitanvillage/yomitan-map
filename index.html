@@ -224,11 +224,12 @@ html, body { height: 100%; font-family: 'Noto Sans JP', sans-serif; background: 
 @media (max-width: 600px) {
   .main         { position: relative; flex: 1; overflow: hidden; }
   #map          { width: 100%; height: 100%; }
-  .sidepanel    { display: none; } /* サイドパネル非表示 */
+  .sidepanel    { display: none; }
   .topbar-badge { display: none; }
-  .footer       { display: none; } /* スマホはフッター非表示（代わりにボトムシートに注意書き） */
+  .footer       { display: none; }
   .fab-legend   { display: flex; }
   .bottom-sheet { display: flex; }
+  .map-mode-btn { display: none; } /* スマホではフローティングボタンを使う */
 }
 </style>
 </head>
