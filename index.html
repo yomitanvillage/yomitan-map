@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>読谷村 都市計画情報マップ</title>
+<meta name="description" content="読谷村の用途地域・建ぺい率・容積率・景観計画区域を住所から簡単に検索できます。"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ===================== リセット・変数 ===================== */
+:root {
+  --green:   #1a6b4a;
+  --teal:    #0d9488;
+  --teal-lt: #ccfbf1;
+  --bg:      #f0f7f5;
+  --panel:   #ffffff;
+  --border:  #d1e8e2;
+  --txt:     #1c2b2b;
+  --txt-sub: #4b6060;
+  --shadow:  0 2px 16px rgba(0,80,60,.10);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--txt); }
+
+/* ===================== レイアウト ===================== */
+.app   { display: flex; flex-direction: column; height: 100vh; }
+.main  { display: flex; flex: 1; overflow: hidden; }
+#map   { flex: 1; min-width: 0; }
+
+/* ===================== トップバー ===================== */
+.topbar {
+  background: var(--green);
+  color: #fff;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,50,30,.2);
+  z-index: 1000;
+}
+.topbar-logo       { font-size: 17px; font-weight: 700; letter-spacing: .03em; line-height: 1.3; }
+.topbar-logo span  { font-size: 10px; font-weight: 400; opacity: .75; display: block; letter-spacing: .12em; margin-top: 1px; }
+.topbar-badge      { margin-left: auto; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.3); border-radius: 20px; padding: 3px 10px; font-size: 11px; white-space: nowrap; }
+
+/* ===================== ローディングバー ===================== */
+.loadbar { height: 3px; background: linear-gradient(90deg, var(--teal) 0%, #5eead4 50%, var(--teal) 100%); background-size: 200% 100%; animation: shimmer 1.2s infinite; display: none; flex-shrink: 0; }
+.loadbar.on { display: block; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* ===================== 検索バー ===================== */
+.searchbar {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 14px;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow);
+  z-index: 900;
+}
+.searchbar input {
+  flex: 1; height: 38px; padding: 0 12px;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  font-size: 14px; font-family: inherit; color: var(--txt); background: #f8fcfb;
+  transition: border .2s, background .2s;
+}
+.searchbar input:focus   { outline: none; border-color: var(--teal); background: #fff; }
+.searchbar input::placeholder { color: #9bb; }
+.searchbar button {
+  height: 38px; padding: 0 18px;
+  background: var(--teal); color: #fff;
+  border: none; border-radius: 8px;
+  font-size: 13px; font-family: inherit; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+  transition: opacity .2s, transform .1s;
+}
+.searchbar button:hover    { opacity: .88; }
+.searchbar button:active   { transform: scale(.97); }
+.searchbar button:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ===================== サイドパネル ===================== */
+.sidepanel {
+  width: 280px; flex-shrink: 0;
+  background: var(--panel); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: -2px 0 8px rgba(0,50,30,.06);
+  z-index: 800;
+}
+.p-section         { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.p-section.scroll  { flex: 1; overflow-y: auto; border-bottom: none; }
+.p-title           { font-size: 10px; font-weight: 700; color: var(--green); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 10px; }
+
+/* ===================== 凡例 ===================== */
+.leg-item   { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 11px; color: var(--txt-sub); }
+.leg-swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,.12); flex-shrink: 0; }
+
+/* ===================== 結果パネル ===================== */
+.r-empty  { text-align: center; padding: 2rem 1rem; color: var(--txt-sub); font-size: 13px; line-height: 2; }
+.r-card   { background: #f8fcfb; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+.r-addr   { font-size: 11px; color: var(--txt-sub); margin-bottom: 8px; display: flex; align-items: flex-start; gap: 4px; line-height: 1.5; }
+.r-row    { display: flex; justify-content: space-between; align-items: flex-start; padding: 6px 0; border-bottom: 1px solid #e8f2ee; font-size: 12px; gap: 8px; }
+.r-row:last-child { border-bottom: none; }
+.r-lbl    { color: var(--txt-sub); flex-shrink: 0; padding-top: 1px; }
+.r-val    { font-weight: 700; color: var(--txt); text-align: right; }
+.yoto-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; line-height: 1.5; }
+.k-yes    { color: #b45309; font-weight: 700; }
+.k-no     { color: var(--txt-sub); font-weight: 400; }
+.notice   { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 8px 10px; font-size: 11px; color: #92400e; line-height: 1.6; margin-top: 8px; }
+.err-box  { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #991b1b; }
+.spinner  { display: inline-block; width: 14px; height: 14px; border: 2px solid #ccc; border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: middle; margin-right: 4px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===================== フッター（クレジット） ===================== */
+.footer { font-size: 10px; color: var(--txt-sub); padding: 6px 14px; border-top: 1px solid var(--border); background: var(--panel); flex-shrink: 0; line-height: 1.9; }
+.footer a { color: var(--teal); text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+.footer-credit { background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 4px 8px; margin-bottom: 4px; color: #92400e; font-size: 10px; line-height: 1.6; }
+
+/* ===================== レスポンシブ ===================== */
+@media (max-width: 600px) {
+  .main        { flex-direction: column; }
+  #map         { min-height: 55vw; flex: none; height: 55vw; max-height: 300px; }
+  .sidepanel   { width: 100%; max-height: 45vh; border-left: none; border-top: 1px solid var(--border); flex-direction: row; overflow-x: auto; }
+  .p-section   { min-width: 200px; border-bottom: none; border-right: 1px solid var(--border); }
+  .p-section.scroll { flex: 1; min-width: 260px; }
+  .topbar-badge { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- トップバー -->
+  <div class="topbar">
+    <div>
+      <div class="topbar-logo">
+        読谷村 都市計画情報マップ
+        <span>YOMITAN URBAN PLANNING MAP</span>
+      </div>
+    </div>
+    <div class="topbar-badge">国交省オープンデータ使用</div>
+  </div>
+  <div class="loadbar" id="loadbar"></div>
+
+  <!-- 検索バー -->
+  <div class="searchbar">
+    <input type="text" id="addr"
+      placeholder="住所または字名を入力（例：読谷村座喜味、読谷村楚辺）"/>
+    <button id="sbtn" onclick="doSearch()">🔍 検索</button>
+  </div>
+
+  <!-- メインコンテンツ -->
+  <div class="main">
+    <div id="map"></div>
+
+    <div class="sidepanel">
+      <!-- 凡例 -->
+      <div class="p-section">
+        <div class="p-title">用途地域 凡例</div>
+        <div id="legend"></div>
+      </div>
+
+      <!-- 検索結果 -->
+      <div class="p-section scroll">
+        <div class="p-title">検索結果</div>
+        <div id="result">
+          <div class="r-empty">
+            🗺️<br>住所を入力して<br>検索してください
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- フッター -->
+  <div class="footer">
+    <div class="footer-credit">
+      このサービスは、国土交通省の不動産情報ライブラリのAPI機能を使用していますが、提供情報の最新性、正確性、完全性等が保証されたものではありません。
+    </div>
+    本サービスは<b>沖縄県中頭郡読谷村</b>が運営します。
+    データ出典: <a href="https://www.reinfolib.mlit.go.jp" target="_blank" rel="noopener">国土交通省 不動産情報ライブラリ</a>（「都市計画決定GISデータ」をもとに読谷村作成）
+    ／地図: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>
+    ／住所検索: <a href="https://maps.gsi.go.jp" target="_blank" rel="noopener">国土地理院</a>
+    ／正式な規制は <a href="https://www.vill.yomitan.okinawa.jp/soshiki/toshi_keikaku/" target="_blank" rel="noopener">都市計画課</a>（☎ 098-982-9220）へ
+  </div>
+
+</div><!-- /.app -->
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ============================================================
+   設定: Cloudflare Workers の URL をここに貼り付けてください
+   例: "https://yomitan-proxy.yourname.workers.dev"
+   ============================================================ */
+const PROXY_BASE = "https://yomitan-proxy.yomitanvillage.workers.dev";
+
+/* ============================================================
+   用途地域 カラー定義
+   ============================================================ */
+const YOTO = {
+  "第１種低層住居専用地域":   { color: "#7eb8f7", label: "第一種低層住居専用地域" },
+  "第２種低層住居専用地域":   { color: "#a8ccf8", label: "第二種低層住居専用地域" },
+  "第１種中高層住居専用地域": { color: "#4a9eed", label: "第一種中高層住居専用地域" },
+  "第２種中高層住居専用地域": { color: "#6cb2f0", label: "第二種中高層住居専用地域" },
+  "第１種住居地域":           { color: "#86d98a", label: "第一種住居地域" },
+  "第２種住居地域":           { color: "#a8e6aa", label: "第二種住居地域" },
+  "準住居地域":               { color: "#c5efc6", label: "準住居地域" },
+  "田園住居地域":             { color: "#52c456", label: "田園住居地域" },
+  "近隣商業地域":             { color: "#f9c74f", label: "近隣商業地域" },
+  "商業地域":                 { color: "#f4841a", label: "商業地域" },
+  "準工業地域":               { color: "#c4a8e8", label: "準工業地域" },
+  "工業地域":                 { color: "#a07ed4", label: "工業地域" },
+  "工業専用地域":             { color: "#e05c5c", label: "工業専用地域" },
+};
+const COLOR_SHIRO = "#d0d0d0"; // 白地
+
+/* ============================================================
+   景観計画区域 簡易判定データ（読谷村景観計画より）
+   実際の区域はGISデータで管理することを推奨します
+   ============================================================ */
+const KEIKAN_ZONES = [
+  { name: "座喜味城跡周辺", lat: 26.3843, lon: 127.7412, r: 0.010 },
+  { name: "残波岬周辺",     lat: 26.3612, lon: 127.7168, r: 0.012 },
+  { name: "西海岸エリア",   lat: 26.373,  lon: 127.718,  r: 0.020 },
+  { name: "やちむんの里周辺",lat: 26.3840, lon: 127.7350, r: 0.008 },
+];
+
+function isInKeikan(lat, lon) {
+  for (const z of KEIKAN_ZONES) {
+    const d = Math.sqrt((lat - z.lat) ** 2 + (lon - z.lon) ** 2);
+    if (d < z.r) return z.name;
+  }
+  return null;
+}
+
+/* ============================================================
+   タイル座標計算
+   ============================================================ */
+function latLonToTile(lat, lon, z) {
+  const x = Math.floor((lon + 180) / 360 * 2 ** z);
+  const y = Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * 2 ** z);
+  return { x, y };
+}
+
+/* ============================================================
+   地図初期化
+   ============================================================ */
+let map, markerLayer, yotoLayer;
+
+function initMap() {
+  map = L.map("map", { zoomControl: true }).setView([26.385, 127.741], 13);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors",
+    maxZoom: 19,
+  }).addTo(map);
+  markerLayer = L.layerGroup().addTo(map);
+  yotoLayer   = L.layerGroup().addTo(map);
+}
+
+/* ============================================================
+   凡例描画
+   ============================================================ */
+function buildLegend() {
+  const el = document.getElementById("legend");
+  const keys = [
+    "第１種低層住居専用地域", "第１種中高層住居専用地域",
+    "第１種住居地域", "近隣商業地域", "商業地域", "準工業地域",
+  ];
+  keys.forEach(k => {
+    const info = YOTO[k];
+    el.innerHTML += `<div class="leg-item">
+      <div class="leg-swatch" style="background:${info.color}"></div>
+      <span>${info.label}</span>
+    </div>`;
+  });
+  el.innerHTML += `<div class="leg-item">
+    <div class="leg-swatch" style="background:${COLOR_SHIRO}"></div>
+    <span>用途地域外（白地）</span>
+  </div>`;
+}
+
+/* ============================================================
+   ローディング制御
+   ============================================================ */
+function setLoad(on) {
+  document.getElementById("loadbar").classList.toggle("on", on);
+  document.getElementById("sbtn").disabled = on;
+}
+
+/* ============================================================
+   国土地理院 ジオコーディング
+   ============================================================ */
+async function geocode(addr) {
+  const url = `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(addr)}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!data || !data.length) return null;
+  return {
+    lat: +data[0].geometry.coordinates[1],
+    lon: +data[0].geometry.coordinates[0],
+    title: data[0].properties.title,
+  };
+}
+
+/* ============================================================
+   Cloudflare Workers 経由で用途地域 GeoJSON 取得
+   ============================================================ */
+async function fetchYotoTile(endpoint, x, y, z) {
+  const url = `${PROXY_BASE}?endpoint=${endpoint}&z=${z}&x=${x}&y=${y}`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  return await res.json();
+}
+
+async function fetchAllYoto(lat, lon) {
+  const z = 14;
+  const { x, y } = latLonToTile(lat, lon, z);
+  const promises = [];
+  // 中心タイルと周囲8枚（3×3）を並列取得
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      promises.push(fetchYotoTile("XKT002", x + dx, y + dy, z));
+      promises.push(fetchYotoTile("XKT014", x + dx, y + dy, z)); // 防火地域
+    }
+  }
+  const results = await Promise.all(promises);
+  const yotoFeatures  = [];
+  const boukaFeatures = [];
+  results.forEach((gj, i) => {
+    if (!gj || !gj.features) return;
+    if (i % 2 === 0) yotoFeatures.push(...gj.features);   // XKT002
+    else             boukaFeatures.push(...gj.features);   // XKT014
+  });
+  return { yotoFeatures, boukaFeatures };
+}
+
+/* ============================================================
+   ポイントインポリゴン判定
+   ============================================================ */
+function pointInRing(ring, x, y) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi))
+      inside = !inside;
+  }
+  return inside;
+}
+
+function findFeatureAt(features, lat, lon) {
+  for (const f of features) {
+    const g = f.geometry;
+    if (!g) continue;
+    const polys = g.type === "Polygon"      ? [g.coordinates]
+                : g.type === "MultiPolygon" ? g.coordinates : [];
+    for (const poly of polys) {
+      if (poly[0] && pointInRing(poly[0], lon, lat)) return f;
+    }
+  }
+  return null;
+}
+
+/* ============================================================
+   GeoJSON 地図描画
+   ============================================================ */
+function drawYoto(features) {
+  yotoLayer.clearLayers();
+  if (!features.length) return;
+  L.geoJSON({ type: "FeatureCollection", features }, {
+    style: f => {
+      const name = f.properties?.YoutoName || f.properties?.youto_class_name || "";
+      const info = YOTO[name];
+      return {
+        fillColor:   info ? info.color : COLOR_SHIRO,
+        fillOpacity: 0.55,
+        color:       "#555",
+        weight:      0.8,
+        opacity:     0.8,
+      };
+    },
+    onEachFeature: (f, layer) => {
+      const p    = f.properties || {};
+      const name = p.YoutoName  || p.youto_class_name || "用途地域外";
+      const bcr  = p.BCR  ?? p.building_coverage_ratio ?? "—";
+      const far  = p.FAR  ?? p.floor_area_ratio        ?? "—";
+      layer.bindPopup(
+        `<b>${name}</b><br>建ぺい率: ${bcr !== "—" ? bcr + "%" : "—"}<br>容積率: ${far !== "—" ? far + "%" : "—"}`,
+        { maxWidth: 200 }
+      );
+    },
+  }).addTo(yotoLayer);
+}
+
+/* ============================================================
+   結果パネル描画
+   ============================================================ */
+function showResult(geoTitle, lat, lon, yotoF, boukaF) {
+  const yp   = yotoF?.properties  || {};
+  const bp   = boukaF?.properties || {};
+  const name = yp.YoutoName  || yp.youto_class_name  || "用途地域外（白地）";
+  const bcr  = yp.BCR  ?? yp.building_coverage_ratio;
+  const far  = yp.FAR  ?? yp.floor_area_ratio;
+  const info = YOTO[name];
+  const bg   = info ? info.color : COLOR_SHIRO;
+  const fg   = (name === "商業地域" || name === "近隣商業地域") ? "#7c4700" : "#1c2b2b";
+
+  const boukaName = bp.AreaName || bp.fire_prevention_class_name || "";
+  const baukaBadge = boukaName
+    ? `<span class="yoto-badge" style="background:#fee2e2;color:#991b1b">${boukaName}</span>`
+    : '<span class="k-no">指定なし</span>';
+
+  const keikanZone = isInKeikan(lat, lon);
+  const keikanStr  = keikanZone
+    ? `<span class="k-yes">⚠ 区域内の可能性あり<br><small>(${keikanZone})</small></span>`
+    : '<span class="k-no">対象外（参考）</span>';
+
+  document.getElementById("result").innerHTML = `
+    <div class="r-card">
+      <div class="r-addr">📍 ${geoTitle}</div>
+      <div class="r-row">
+        <span class="r-lbl">用途地域</span>
+        <span class="r-val">
+          <span class="yoto-badge" style="background:${bg};color:${fg}">${name}</span>
+        </span>
+      </div>
+      <div class="r-row">
+        <span class="r-lbl">建ぺい率</span>
+        <span class="r-val">${bcr != null ? bcr + "%" : "—"}</span>
+      </div>
+      <div class="r-row">
+        <span class="r-lbl">容積率</span>
+        <span class="r-val">${far != null ? far + "%" : "—"}</span>
+      </div>
+      <div class="r-row">
+        <span class="r-lbl">防火・準防火</span>
+        <span class="r-val">${baukaBadge}</span>
+      </div>
+      <div class="r-row">
+        <span class="r-lbl">景観計画区域</span>
+        <span class="r-val">${keikanStr}</span>
+      </div>
+    </div>
+    <div class="notice">
+      ⚠ この情報は参考です。正式な都市計画規制は<br>
+      <b>都市計画課</b>（☎ 098-982-9220）でご確認ください。
+    </div>`;
+}
+
+function showErr(msg) {
+  document.getElementById("result").innerHTML = `<div class="err-box">⚠ ${msg}</div>`;
+}
+
+/* ============================================================
+   メイン検索処理
+   ============================================================ */
+async function doSearch() {
+  const addr = document.getElementById("addr").value.trim();
+  if (!addr) return;
+
+  setLoad(true);
+  document.getElementById("result").innerHTML =
+    '<div class="r-empty"><span class="spinner"></span> 取得中...</div>';
+
+  try {
+    // 1. ジオコーディング（国土地理院）
+    const geo = await geocode(addr);
+    if (!geo) {
+      showErr("住所が見つかりませんでした。「読谷村座喜味」のように都道府県名から入力してください。");
+      setLoad(false);
+      return;
+    }
+
+    // 2. 地図移動・マーカー
+    map.setView([geo.lat, geo.lon], 15);
+    markerLayer.clearLayers();
+    L.marker([geo.lat, geo.lon])
+      .bindPopup(geo.title)
+      .addTo(markerLayer)
+      .openPopup();
+
+    // 3. 用途地域・防火地域データ取得
+    const { yotoFeatures, boukaFeatures } = await fetchAllYoto(geo.lat, geo.lon);
+
+    // 4. 地図描画
+    drawYoto(yotoFeatures);
+
+    // 5. 地点の情報を特定して結果表示
+    const yotoF  = findFeatureAt(yotoFeatures,  geo.lat, geo.lon);
+    const boukaF = findFeatureAt(boukaFeatures, geo.lat, geo.lon);
+    showResult(geo.title, geo.lat, geo.lon, yotoF, boukaF);
+
+  } catch (e) {
+    showErr("データ取得中にエラーが発生しました。しばらくしてから再度お試しください。");
+    console.error(e);
+  }
+
+  setLoad(false);
+}
+
+document.getElementById("addr").addEventListener("keydown", e => {
+  if (e.key === "Enter") doSearch();
+});
+
+/* ============================================================
+   初期化
+   ============================================================ */
+buildLegend();
+initMap();
+</script>
+</body>
+</html>
