@@ -483,6 +483,8 @@ async function doSearch() {
     const yotoF  = findFeatureAt(yotoFeatures,  geo.lat, geo.lon);
     const boukaF = findFeatureAt(boukaFeatures, geo.lat, geo.lon);
     const chikuF = findFeatureAt(chikuFeatures, geo.lat, geo.lon);
+    console.log("yotoF:", yotoF === null ? "NULL（用途地域外）" : yotoF?.properties?.["use_area_ja"]);
+    console.log("youto_id:", yotoF?.properties?.["youto_id"]);
     showResult(geo.title, geo.lat, geo.lon, yotoF, boukaF, chikuF);
   } catch(e) {
     showErr("データ取得中にエラーが発生しました。しばらくしてからお試しください。");
